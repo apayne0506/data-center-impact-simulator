@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Data Center Impact Simulator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Center Community Impact Simulator</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -15,6 +15,10 @@
 --warning:#ffc107;
 --danger:#dc3545;
 --bg:#f4f7fa;
+}
+
+*{
+box-sizing:border-box;
 }
 
 body{
@@ -41,11 +45,10 @@ background:white;
 padding:20px;
 margin-bottom:20px;
 border-radius:12px;
-box-shadow:0 2px 10px rgba(0,0,0,.1);
+box-shadow:0 2px 8px rgba(0,0,0,.1);
 }
 
 h2{
-margin-top:0;
 color:var(--primary);
 }
 
@@ -62,10 +65,10 @@ button{
 background:var(--secondary);
 color:white;
 border:none;
-padding:12px 18px;
+padding:12px 20px;
 border-radius:8px;
 cursor:pointer;
-font-weight:600;
+font-size:16px;
 }
 
 button:hover{
@@ -85,46 +88,95 @@ border-radius:10px;
 }
 
 .metric h3{
-margin:0 0 10px 0;
-font-size:16px;
+margin-top:0;
 }
 
 .score{
-font-size:28px;
+font-size:24px;
 font-weight:bold;
+}
+
+.badge{
+display:inline-block;
+padding:8px 12px;
+border-radius:20px;
+font-weight:bold;
+}
+
+.good{
+background:#28a745;
+color:white;
+}
+
+.medium{
+background:#ffc107;
+color:black;
+}
+
+.bad{
+background:#dc3545;
+color:white;
+}
+
+.analysis-grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:20px;
+}
+
+.impact-box{
+padding:20px;
+border-radius:10px;
+}
+
+.benefits{
+background:#eefaf1;
+border-left:6px solid #28a745;
+}
+
+.concerns{
+background:#fff2f2;
+border-left:6px solid #dc3545;
+}
+
+.impact-box li{
+margin-bottom:15px;
+line-height:1.5;
 }
 
 .report{
 white-space:pre-wrap;
 background:#fafafa;
-padding:15px;
-border-radius:10px;
+padding:20px;
 border:1px solid #ddd;
+border-radius:10px;
+}
+
+.narrative{
+line-height:1.7;
+background:#fbfbfb;
+padding:20px;
+border-radius:10px;
+border-left:6px solid #0078d4;
 }
 
 canvas{
 margin-top:20px;
 }
 
-.badge{
-display:inline-block;
-padding:6px 12px;
-border-radius:20px;
-color:white;
-font-weight:bold;
+@media(max-width:800px){
+.analysis-grid{
+grid-template-columns:1fr;
 }
-
-.good{background:var(--success);}
-.medium{background:var(--warning);color:black;}
-.bad{background:var(--danger);}
+}
 </style>
-</head>
 
+</head>
 <body>
 
 <header>
 <h1>🏢 Data Center Community Impact Simulator</h1>
-<p>Analyze economic, environmental, and community impacts</p>
+<p>Understand how a proposed data center could affect a community</p>
 </header>
 
 <div class="container">
@@ -139,13 +191,16 @@ font-weight:bold;
 <label>Population</label>
 <input id="population" type="number" placeholder="17500">
 
-<label>Data Center Type</label>
+<label>Data Center Size</label>
+
 <select id="mw">
+
 <option value="25">Edge Facility (25 MW)</option>
 <option value="50">Enterprise Facility (50 MW)</option>
 <option value="100">Regional Facility (100 MW)</option>
 <option value="250">Hyperscale Facility (250 MW)</option>
 <option value="500">Mega Campus (500 MW)</option>
+
 </select>
 
 <button onclick="analyze()">Analyze Community</button>
@@ -153,36 +208,34 @@ font-weight:bold;
 </div>
 
 <div class="card">
-
 <h2>Impact Dashboard</h2>
-
 <div id="results" class="results"></div>
-
 </div>
 
 <div class="card">
-
 <h2>Community Scorecard</h2>
-
 <div id="scorecard"></div>
-
 </div>
 
 <div class="card">
+<h2>Benefits vs. Potential Concerns</h2>
+<div id="impactAnalysis"></div>
+</div>
 
-<h2>Before vs. After Comparison</h2>
+<div class="card">
+<h2>Five Years After Construction</h2>
+<div id="futureNarrative" class="narrative"></div>
+</div>
 
+<div class="card">
+<h2>Community Impact Chart</h2>
 <canvas id="impactChart"></canvas>
-
 </div>
 
 <div class="card">
-
-<h2>Community Impact Report</h2>
-
+<h2>Detailed Community Report</h2>
 <button onclick="generateReport()">Generate Report</button>
 <div id="report" class="report"></div>
-
 </div>
 
 </div>
@@ -190,28 +243,21 @@ font-weight:bold;
 <script>
 
 let chart;
-
 let reportData={};
 
 function analyze(){
 
-const town=document.getElementById("town").value || "Selected Town";
-const population=parseInt(document.getElementById("population").value);
+const town=document.getElementById("town").value || "Selected Community";
+const population=parseInt(document.getElementById("population").value) || 10000;
 const mw=parseInt(document.getElementById("mw").value);
 
 const constructionJobs=Math.round(mw*3.5);
 const permanentJobs=Math.round(mw*0.3);
-
 const annualTax=mw*25000;
-
 const dailyWater=mw*6000;
-
 const annualEnergy=mw*8760;
-
 const homesEquivalent=Math.round(mw*800);
-
 const housingNeed=Math.round(permanentJobs*2);
-
 const populationIncrease=Math.round(permanentJobs*1.4);
 
 const econ=Math.min(100,Math.round((constructionJobs+permanentJobs)/10));
@@ -230,10 +276,7 @@ dailyWater,
 annualEnergy,
 homesEquivalent,
 housingNeed,
-econ,
-env,
-infra,
-growth
+populationIncrease
 };
 
 document.getElementById("results").innerHTML=`
@@ -254,12 +297,12 @@ document.getElementById("results").innerHTML=`
 </div>
 
 <div class="metric">
-<h3>Daily Water Usage</h3>
+<h3>Daily Water Use</h3>
 <div class="score">${dailyWater.toLocaleString()}</div>
 </div>
 
 <div class="metric">
-<h3>Annual Energy Use (MWh)</h3>
+<h3>Annual Energy Use</h3>
 <div class="score">${annualEnergy.toLocaleString()}</div>
 </div>
 
@@ -277,10 +320,9 @@ document.getElementById("results").innerHTML=`
 <h3>Population Increase</h3>
 <div class="score">${populationIncrease}</div>
 </div>
-
 `;
 
-let recommendation;
+let recommendation="";
 
 if(env<40){
 recommendation='<span class="badge good">Recommended</span>';
@@ -293,13 +335,90 @@ recommendation='<span class="badge bad">High Community Impact</span>';
 }
 
 document.getElementById("scorecard").innerHTML=`
-
 <p><strong>Economic Benefit:</strong> ${econ}/100</p>
 <p><strong>Environmental Impact:</strong> ${env}/100</p>
 <p><strong>Infrastructure Stress:</strong> ${infra}/100</p>
 <p><strong>Community Growth:</strong> ${growth}/100</p>
 <br>
 ${recommendation}
+`;
+
+document.getElementById("impactAnalysis").innerHTML=`
+
+<div class="analysis-grid">
+
+<div class="impact-box benefits">
+
+<h3>✅ Potential Benefits</h3>
+
+<ul>
+
+<li><strong>Tax Revenue</strong><br>
+The estimated annual tax revenue of $${annualTax.toLocaleString()} could help improve schools, roads, emergency services, parks, and public facilities.</li>
+
+<li><strong>Construction Employment</strong><br>
+Approximately ${constructionJobs} jobs could be created during construction, generating business for local hotels, restaurants, suppliers, and contractors.</li>
+
+<li><strong>Technology Investment</strong><br>
+Large technology projects often encourage upgrades to roads, utilities, broadband infrastructure, and economic development efforts.</li>
+
+<li><strong>Long-Term Jobs</strong><br>
+Approximately ${permanentJobs} permanent employees may be needed to operate and maintain the facility.</li>
+
+<li><strong>Business Growth</strong><br>
+Additional workers and visitors can increase spending at local businesses throughout the community.</li>
+
+</ul>
+
+</div>
+
+<div class="impact-box concerns">
+
+<h3>⚠ Potential Concerns</h3>
+
+<ul>
+
+<li><strong>Water Usage</strong><br>
+The facility could consume approximately ${dailyWater.toLocaleString()} gallons of water each day to cool servers and equipment.</li>
+
+<li><strong>Power Demand</strong><br>
+A ${mw} MW facility would require substantial electricity and may require upgrades to substations and transmission lines.</li>
+
+<li><strong>Housing Demand</strong><br>
+Demand for approximately ${housingNeed} new housing units could increase local housing prices if supply remains limited.</li>
+
+<li><strong>Traffic</strong><br>
+Construction activities may increase truck traffic and road congestion while materials are transported to the site.</li>
+
+<li><strong>Pressure on Services</strong><br>
+Population growth may increase demand for schools, healthcare facilities, and emergency services.</li>
+
+</ul>
+
+</div>
+
+</div>
+`;
+
+document.getElementById("futureNarrative").innerHTML=`
+
+<h3>🏘️ What Residents Might Notice Five Years Later</h3>
+
+<p>
+Five years after a ${mw} MW data center is built in ${town}, the community would likely experience visible changes. New housing developments may appear to accommodate incoming workers and their families.
+</p>
+
+<p>
+Local restaurants, hotels, stores, and service businesses could see more customers as economic activity increases. Property development may occur around the facility and nearby transportation routes.
+</p>
+
+<p>
+Utility companies may construct new substations, electrical infrastructure, or transmission upgrades to provide reliable power. Local governments could use increased tax revenue for community projects such as road repairs, parks, schools, and public safety improvements.
+</p>
+
+<p>
+At the same time, city leaders may need to balance economic growth with concerns about water consumption, housing affordability, and infrastructure capacity.
+</p>
 
 `;
 
@@ -319,7 +438,6 @@ labels:[
 'Community Growth'
 ],
 datasets:[{
-label:'Score',
 data:[econ,env,infra,growth],
 backgroundColor:[
 '#28a745',
@@ -348,52 +466,51 @@ alert("Run an analysis first.");
 return;
 }
 
-document.getElementById("report").innerText=
+document.getElementById("report").innerText=`
 
-`COMMUNITY IMPACT REPORT
+COMMUNITY IMPACT REPORT
 
 Town: ${reportData.town}
 
-Population:
-${reportData.population.toLocaleString()}
+Population: ${reportData.population.toLocaleString()}
 
-Facility Size:
-${reportData.mw} MW
+Data Center Size: ${reportData.mw} MW
 
-ECONOMIC EFFECTS
+ECONOMIC IMPACT
 
-• Construction Jobs Created:
-${reportData.constructionJobs}
+Approximately ${reportData.constructionJobs} construction jobs could be created during development. These jobs often benefit local contractors, restaurants, hotels, and suppliers.
 
-• Permanent Jobs:
-${reportData.permanentJobs}
+The facility could support approximately ${reportData.permanentJobs} permanent positions, including technicians, security staff, managers, and maintenance personnel.
 
-• Estimated Annual Tax Revenue:
-$${reportData.annualTax.toLocaleString()}
+Estimated annual tax revenue is approximately $${reportData.annualTax.toLocaleString()}. Communities frequently use these funds to improve roads, schools, emergency services, and public infrastructure.
 
-RESOURCE IMPACTS
+ENERGY IMPACT
 
-• Daily Water Consumption:
-${reportData.dailyWater.toLocaleString()} gallons
+The facility would consume approximately ${reportData.annualEnergy.toLocaleString()} MWh annually.
 
-• Annual Energy Consumption:
-${reportData.annualEnergy.toLocaleString()} MWh
+This level of electricity demand is similar to the usage of approximately ${reportData.homesEquivalent.toLocaleString()} homes.
 
-• Equivalent Household Power Demand:
-${reportData.homesEquivalent.toLocaleString()} homes
+Utility companies may need to invest in new substations and transmission infrastructure to support long-term demand.
 
-COMMUNITY EFFECTS
+WATER IMPACT
 
-• Additional Housing Demand:
-${reportData.housingNeed} units
+Daily water consumption may reach approximately ${reportData.dailyWater.toLocaleString()} gallons.
 
-• Estimated Population Increase:
-${Math.round(reportData.permanentJobs*1.4)}
+Communities relying on groundwater or limited water resources may need long-term planning to ensure sustainability.
 
-SUMMARY
+HOUSING IMPACT
 
-A ${reportData.mw} MW data center would likely bring significant economic benefits through job creation and tax revenue. However, it would also increase local demand for electricity, water, housing, and transportation infrastructure. Local leaders should weigh these benefits against potential environmental and infrastructure impacts and consider mitigation strategies before approving development.`;
+Demand for roughly ${reportData.housingNeed} additional housing units may occur.
 
+Without adequate construction of new housing, rental rates and home prices may increase.
+
+COMMUNITY OUTLOOK
+
+Overall, the project would likely provide substantial economic benefits through tax revenue, investment, and employment.
+
+However, local leaders should also plan for increased demand on housing, utilities, transportation systems, and public services to ensure sustainable growth.
+
+`;
 }
 
 </script>
