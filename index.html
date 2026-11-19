@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Center Impact Simulator</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root{
+--primary:#003366;
+--secondary:#0078d4;
+--success:#28a745;
+--warning:#ffc107;
+--danger:#dc3545;
+--bg:#f4f7fa;
+}
+
+body{
+margin:0;
+font-family:Segoe UI,Arial,sans-serif;
+background:var(--bg);
+}
+
+header{
+background:var(--primary);
+color:white;
+padding:25px;
+text-align:center;
+}
+
+.container{
+max-width:1200px;
+margin:auto;
+padding:20px;
+}
+
+.card{
+background:white;
+padding:20px;
+margin-bottom:20px;
+border-radius:12px;
+box-shadow:0 2px 10px rgba(0,0,0,.1);
+}
+
+h2{
+margin-top:0;
+color:var(--primary);
+}
+
+input,select{
+width:100%;
+padding:12px;
+margin-top:6px;
+margin-bottom:15px;
+border:1px solid #ccc;
+border-radius:8px;
+}
+
+button{
+background:var(--secondary);
+color:white;
+border:none;
+padding:12px 18px;
+border-radius:8px;
+cursor:pointer;
+font-weight:600;
+}
+
+button:hover{
+background:#005fa3;
+}
+
+.results{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:15px;
+}
+
+.metric{
+background:#eef4fb;
+padding:15px;
+border-radius:10px;
+}
+
+.metric h3{
+margin:0 0 10px 0;
+font-size:16px;
+}
+
+.score{
+font-size:28px;
+font-weight:bold;
+}
+
+.report{
+white-space:pre-wrap;
+background:#fafafa;
+padding:15px;
+border-radius:10px;
+border:1px solid #ddd;
+}
+
+canvas{
+margin-top:20px;
+}
+
+.badge{
+display:inline-block;
+padding:6px 12px;
+border-radius:20px;
+color:white;
+font-weight:bold;
+}
+
+.good{background:var(--success);}
+.medium{background:var(--warning);color:black;}
+.bad{background:var(--danger);}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>🏢 Data Center Community Impact Simulator</h1>
+<p>Analyze economic, environmental, and community impacts</p>
+</header>
+
+<div class="container">
+
+<div class="card">
+
+<h2>Community Information</h2>
+
+<label>Town Name</label>
+<input id="town" placeholder="Kirksville">
+
+<label>Population</label>
+<input id="population" type="number" placeholder="17500">
+
+<label>Data Center Type</label>
+<select id="mw">
+<option value="25">Edge Facility (25 MW)</option>
+<option value="50">Enterprise Facility (50 MW)</option>
+<option value="100">Regional Facility (100 MW)</option>
+<option value="250">Hyperscale Facility (250 MW)</option>
+<option value="500">Mega Campus (500 MW)</option>
+</select>
+
+<button onclick="analyze()">Analyze Community</button>
+
+</div>
+
+<div class="card">
+
+<h2>Impact Dashboard</h2>
+
+<div id="results" class="results"></div>
+
+</div>
+
+<div class="card">
+
+<h2>Community Scorecard</h2>
+
+<div id="scorecard"></div>
+
+</div>
+
+<div class="card">
+
+<h2>Before vs. After Comparison</h2>
+
+<canvas id="impactChart"></canvas>
+
+</div>
+
+<div class="card">
+
+<h2>Community Impact Report</h2>
+
+<button onclick="generateReport()">Generate Report</button>
+<div id="report" class="report"></div>
+
+</div>
+
+</div>
+
+<script>
+
+let chart;
+
+let reportData={};
+
+function analyze(){
+
+const town=document.getElementById("town").value || "Selected Town";
+const population=parseInt(document.getElementById("population").value);
+const mw=parseInt(document.getElementById("mw").value);
+
+const constructionJobs=Math.round(mw*3.5);
+const permanentJobs=Math.round(mw*0.3);
+
+const annualTax=mw*25000;
+
+const dailyWater=mw*6000;
+
+const annualEnergy=mw*8760;
+
+const homesEquivalent=Math.round(mw*800);
+
+const housingNeed=Math.round(permanentJobs*2);
+
+const populationIncrease=Math.round(permanentJobs*1.4);
+
+const econ=Math.min(100,Math.round((constructionJobs+permanentJobs)/10));
+const env=Math.min(100,Math.round(mw/5));
+const infra=Math.min(100,Math.round(mw/6));
+const growth=Math.min(100,Math.round((populationIncrease/population)*1000));
+
+reportData={
+town,
+population,
+mw,
+constructionJobs,
+permanentJobs,
+annualTax,
+dailyWater,
+annualEnergy,
+homesEquivalent,
+housingNeed,
+econ,
+env,
+infra,
+growth
+};
+
+document.getElementById("results").innerHTML=`
+
+<div class="metric">
+<h3>Construction Jobs</h3>
+<div class="score">${constructionJobs}</div>
+</div>
+
+<div class="metric">
+<h3>Permanent Jobs</h3>
+<div class="score">${permanentJobs}</div>
+</div>
+
+<div class="metric">
+<h3>Annual Tax Revenue</h3>
+<div class="score">$${annualTax.toLocaleString()}</div>
+</div>
+
+<div class="metric">
+<h3>Daily Water Usage</h3>
+<div class="score">${dailyWater.toLocaleString()}</div>
+</div>
+
+<div class="metric">
+<h3>Annual Energy Use (MWh)</h3>
+<div class="score">${annualEnergy.toLocaleString()}</div>
+</div>
+
+<div class="metric">
+<h3>Homes Equivalent</h3>
+<div class="score">${homesEquivalent.toLocaleString()}</div>
+</div>
+
+<div class="metric">
+<h3>Housing Units Needed</h3>
+<div class="score">${housingNeed}</div>
+</div>
+
+<div class="metric">
+<h3>Population Increase</h3>
+<div class="score">${populationIncrease}</div>
+</div>
+
+`;
+
+let recommendation;
+
+if(env<40){
+recommendation='<span class="badge good">Recommended</span>';
+}
+else if(env<70){
+recommendation='<span class="badge medium">Needs Mitigation</span>';
+}
+else{
+recommendation='<span class="badge bad">High Community Impact</span>';
+}
+
+document.getElementById("scorecard").innerHTML=`
+
+<p><strong>Economic Benefit:</strong> ${econ}/100</p>
+<p><strong>Environmental Impact:</strong> ${env}/100</p>
+<p><strong>Infrastructure Stress:</strong> ${infra}/100</p>
+<p><strong>Community Growth:</strong> ${growth}/100</p>
+<br>
+${recommendation}
+
+`;
+
+const ctx=document.getElementById("impactChart");
+
+if(chart){
+chart.destroy();
+}
+
+chart=new Chart(ctx,{
+type:'bar',
+data:{
+labels:[
+'Economic Benefit',
+'Environmental Impact',
+'Infrastructure Stress',
+'Community Growth'
+],
+datasets:[{
+label:'Score',
+data:[econ,env,infra,growth],
+backgroundColor:[
+'#28a745',
+'#dc3545',
+'#ffc107',
+'#0078d4'
+]
+}]
+},
+options:{
+responsive:true,
+plugins:{
+legend:{
+display:false
+}
+}
+}
+});
+
+}
+
+function generateReport(){
+
+if(!reportData.town){
+alert("Run an analysis first.");
+return;
+}
+
+document.getElementById("report").innerText=
+
+`COMMUNITY IMPACT REPORT
+
+Town: ${reportData.town}
+
+Population:
+${reportData.population.toLocaleString()}
+
+Facility Size:
+${reportData.mw} MW
+
+ECONOMIC EFFECTS
+
+• Construction Jobs Created:
+${reportData.constructionJobs}
+
+• Permanent Jobs:
+${reportData.permanentJobs}
+
+• Estimated Annual Tax Revenue:
+$${reportData.annualTax.toLocaleString()}
+
+RESOURCE IMPACTS
+
+• Daily Water Consumption:
+${reportData.dailyWater.toLocaleString()} gallons
+
+• Annual Energy Consumption:
+${reportData.annualEnergy.toLocaleString()} MWh
+
+• Equivalent Household Power Demand:
+${reportData.homesEquivalent.toLocaleString()} homes
+
+COMMUNITY EFFECTS
+
+• Additional Housing Demand:
+${reportData.housingNeed} units
+
+• Estimated Population Increase:
+${Math.round(reportData.permanentJobs*1.4)}
+
+SUMMARY
+
+A ${reportData.mw} MW data center would likely bring significant economic benefits through job creation and tax revenue. However, it would also increase local demand for electricity, water, housing, and transportation infrastructure. Local leaders should weigh these benefits against potential environmental and infrastructure impacts and consider mitigation strategies before approving development.`;
+
+}
+
+</script>
+
+</body>
+</html>
